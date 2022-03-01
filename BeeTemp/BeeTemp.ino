@@ -11,7 +11,7 @@
 #include <SPI.h>
 #include <SD.h>
 
-#define ONE_WIRE_BUS A1 // Data wire is plugged into digital pin 2 on the Arduino
+#define ONE_WIRE_BUS 5 // Data wire is plugged into digital pin 5 on the Feather
 #define chipSelect 10   // Data Pin for SD Card
 
 // Setup a oneWire instance to communicate with any OneWire device
@@ -20,11 +20,56 @@ OneWire oneWire(ONE_WIRE_BUS);
 // Pass oneWire reference to DallasTemperature library
 DallasTemperature sensors(&oneWire);
 
-void setup(void)
-{
+// Create File for Data on SD Card
+File tempData;
+
+void setup(void){
   sensors.begin();  // Start up the library
   Serial.begin(9600);
   Serial.print(sensors.getDeviceCount());
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+
+  Serial.println("initializiong SD card...");
+
+  if (!SD.begin(chipSelect)) {
+    Serial.println("imitialization failed!");
+    while (1);  
+  }
+
+  Serial.println("initialization done.");
+
+  tempData = SD.open("test.txt", FILE_WRITE);
+
+  // if the file opened okay, write to it:
+  if (tempData) {
+    Serial.print("Writing to test.txt...");
+    tempData.println("testing 1, 2, 3.");
+    // close the file:
+    tempData.close();
+    Serial.println("done.");
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening test.txt");
+  }
+  // re-open the file for reading:
+  tempData = SD.open("test.txt");
+  if (tempData) {
+    Serial.println("test.txt:");
+
+    //read from the file until there's nothing else in it:
+    while (tempData.available()) {
+      Serial.write(tempData.read());
+      
+    }
+    // close the file:
+    tempData.close();
+    
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening test.txt");
+  }
 }
 
 void loop(void)
