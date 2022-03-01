@@ -81,8 +81,7 @@ void loop(void)
   for(int i=0;i<sensors.getDeviceCount();i++){
       print_sensor(i); 
   }
-  
-  
+
   delay(500);
 }
 
@@ -95,25 +94,29 @@ void print_sensor(uint8_t index){
   //Serial.print("Temperature:"+String(index)+ "Sensor:");
   DeviceAddress address;
   if (sensors.getAddress(address,index)){
-//    if(temp>30.0){
-//          printAddress(address);
-//          Serial.println();
-//          Serial.println(temp);
+    if(temp>30.0){
+          printAddress(address);
+          Serial.println();
+          Serial.println(temp);
 
-//    }
-    //Serial.print(String(index)+":");
-    //Serial.print(temp);
-    //Serial.print((char)176);//shows degrees character
-    //Serial.print("C  |  ");
-    
-    //printAddress(address);
-    //Serial.println();
+    }
+//    Serial.print(String(index)+":   ");
+//    Serial.print(temp);
+//    Serial.print((char)176);//shows degrees character
+//    Serial.print("C  |  ");
+//    
+//    printAddress(address);
+//    Serial.println();
   }
   
   //print the temperature in Fahrenheit
+  Serial.print(String(index)+":    ");
   Serial.print(Farenhight(temp));
-  Serial.print((char)176);//shows degrees character
-  Serial.println("F");
+  Serial.print(char(176));//shows degrees character
+  Serial.print("F  |  ");
+
+  printAddress(address);
+  Serial.println();
 }
 
 //Prints in Hex
