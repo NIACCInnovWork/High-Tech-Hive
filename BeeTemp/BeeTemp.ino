@@ -34,13 +34,13 @@ void setup(void){
   Serial.println("initializiong SD card...");
 
   if (!SD.begin(chipSelect)) {
-    Serial.println("imitialization failed!");
+    Serial.println("initialization failed!");
     while (1);  
   }
 
   Serial.println("initialization done.");
 
-  SDWrite();
+  
 }
 
 // Main Loop
@@ -51,9 +51,10 @@ void loop(void)
   Serial.println(sensors.getDeviceCount()); // Print the number of sensors to the Serial Terminal
   
   for(int i=0;i<sensors.getDeviceCount();i++){
-      print_sensor(i); 
+      print_sensor(i); // Print Data to Serial
+      SDWrite(i);
   }
-
+  
   delay(1000); // Change Delay to 10 seconds
 }
 
@@ -103,13 +104,20 @@ void printAddress(DeviceAddress deviceAddress)
 }
 
 //Write to SD Function
-void SDWrite(){
+void SDWrite(uint8_t index){
   tempData = SD.open("test.txt", FILE_WRITE);
-
+  double temp = sensors.getTempCByIndex(index);
+  
   // if the file opened okay, write to it:
   if (tempData) {
-    Serial.print("Writing to test.txt...");
-    tempData.println("testing 1, 2, 3.");
+    //Serial.print("Writing to test.txt...");
+    //tempData.println(String(temp));
+    tempData.print(String(index)+":    ");
+    tempData.print(Farenhight(temp));
+    tempData.print(char(176));//shows degrees character
+    tempData.print("F  |  ");
+    tempData.println();
+
     // close the file:
     tempData.close();
     Serial.println("done.");
@@ -117,21 +125,5 @@ void SDWrite(){
     // if the file didn't open, print an error:
     Serial.println("error opening test.txt");
   }
-  // re-open the file for reading:
-  tempData = SD.open("test.txt");
-  if (tempData) {
-    Serial.println("test.txt:");
 
-    //read from the file until there's nothing else in it:
-    while (tempData.available()) {
-      Serial.write(tempData.read());
-      
-    }
-    // close the file:
-    tempData.close();
-    
-  } else {
-    // if the file didn't open, print an error:
-    Serial.println("error opening test.txt");
-  }
 }
