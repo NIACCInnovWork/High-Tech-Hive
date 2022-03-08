@@ -40,49 +40,21 @@ void setup(void){
 
   Serial.println("initialization done.");
 
-  tempData = SD.open("test.txt", FILE_WRITE);
-
-  // if the file opened okay, write to it:
-  if (tempData) {
-    Serial.print("Writing to test.txt...");
-    tempData.println("testing 1, 2, 3.");
-    // close the file:
-    tempData.close();
-    Serial.println("done.");
-  } else {
-    // if the file didn't open, print an error:
-    Serial.println("error opening test.txt");
-  }
-  // re-open the file for reading:
-  tempData = SD.open("test.txt");
-  if (tempData) {
-    Serial.println("test.txt:");
-
-    //read from the file until there's nothing else in it:
-    while (tempData.available()) {
-      Serial.write(tempData.read());
-      
-    }
-    // close the file:
-    tempData.close();
-    
-  } else {
-    // if the file didn't open, print an error:
-    Serial.println("error opening test.txt");
-  }
+  SDWrite();
 }
 
+// Main Loop
 void loop(void)
 { 
   // Send the command to get temperatures
   sensors.requestTemperatures();
-  Serial.println(sensors.getDeviceCount());
+  Serial.println(sensors.getDeviceCount()); // Print the number of sensors to the Serial Terminal
   
   for(int i=0;i<sensors.getDeviceCount();i++){
       print_sensor(i); 
   }
 
-  delay(500);
+  delay(1000); // Change Delay to 10 seconds
 }
 
 double Farenhight(double temp){
@@ -127,5 +99,39 @@ void printAddress(DeviceAddress deviceAddress)
     // zero pad the address if necessary
     if (deviceAddress[i] < 16) Serial.print("0");
     Serial.print(deviceAddress[i], HEX);
+  }
+}
+
+//Write to SD Function
+void SDWrite(){
+  tempData = SD.open("test.txt", FILE_WRITE);
+
+  // if the file opened okay, write to it:
+  if (tempData) {
+    Serial.print("Writing to test.txt...");
+    tempData.println("testing 1, 2, 3.");
+    // close the file:
+    tempData.close();
+    Serial.println("done.");
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening test.txt");
+  }
+  // re-open the file for reading:
+  tempData = SD.open("test.txt");
+  if (tempData) {
+    Serial.println("test.txt:");
+
+    //read from the file until there's nothing else in it:
+    while (tempData.available()) {
+      Serial.write(tempData.read());
+      
+    }
+    // close the file:
+    tempData.close();
+    
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening test.txt");
   }
 }
