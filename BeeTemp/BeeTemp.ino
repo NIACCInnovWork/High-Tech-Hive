@@ -23,6 +23,20 @@ DallasTemperature sensors(&oneWire);
 // Create File for Data on SD Card
 File tempData;
 
+// Create SensorMap
+// uint8_t sensorMap[] = {28975B0E000000DA,
+//                   28BC2B10000000D4,
+//                   288B8F0F00000032,
+//                   28E9E80E00000050,
+//                   282B180E00000007,
+//                   282E1A1000000042,
+//                   285FCC0F0000008D,
+//                   28CD5A0F00000079,
+//                   28044D0F0000005D};
+const uint8_t sensorMap[] = {2924906598688096474,
+                      2935268404858192084,
+                      2921586077867180082};
+
 void setup(void){
   sensors.begin();  // Start up the library
   Serial.begin(9600);
@@ -52,8 +66,10 @@ void loop(void)
   
   for(int i=0;i<sensors.getDeviceCount();i++){
       print_sensor(i); // Print Data to Serial
-      SDWrite(i);
+      SDWrite(i); // Write Data to SD Card
+
   }
+
   
   delay(1000); // Change Delay to 10 seconds
 }
@@ -106,16 +122,18 @@ void printAddress(DeviceAddress deviceAddress)
 //Write to SD Function
 void SDWrite(uint8_t index){
   tempData = SD.open("test.txt", FILE_WRITE);
-  double temp = sensors.getTempCByIndex(index);
-  
+   double temp = sensors.getTempCByIndex(index);  
   // if the file opened okay, write to it:
   if (tempData) {
-    //Serial.print("Writing to test.txt...");
-    //tempData.println(String(temp));
-    tempData.print(String(index)+":    ");
-    tempData.print(Farenhight(temp));
-    tempData.print(char(176));//shows degrees character
-    tempData.print("F  |  ");
+    // //Serial.print("Writing to test.txt...");
+    // //tempData.println(String(temp));
+    // tempData.print(String(index)+":    ");
+    // tempData.print(Farenhight(temp));
+    // tempData.print(char(176));//shows degrees character
+    // tempData.print("F  |  ");
+    // tempData.println();
+
+    tempData.print(String(Farenhight(temp))+",");
     tempData.println();
 
     // close the file:
