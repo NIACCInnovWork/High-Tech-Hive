@@ -22,126 +22,93 @@ DallasTemperature sensors(&oneWire);
 
 // Create File for Data on SD Card
 File tempData;
+//File dataFile;
+
+// Create Device Count Variable
+int device_count;
 
 // Create SensorMap
-// uint8_t sensorMap[] = {28975B0E000000DA,
-//                   28BC2B10000000D4,
-//                   288B8F0F00000032,
-//                   28E9E80E00000050,
-//                   282B180E00000007,
-//                   282E1A1000000042,
-//                   285FCC0F0000008D,
-//                   28CD5A0F00000079,
-//                   28044D0F0000005D};
-const uint8_t sensorMap[] = {2924906598688096474,
-                      2935268404858192084,
-                      2921586077867180082};
+uint8_t sensor0_id[8] = { 0x28, 0x97, 0x5B, 0x0E, 0x00, 0x00, 0x00, 0xDA}; // Sensor Located on Board 1, Sensor 0
+uint8_t sensor1_id[8] = { 0x28, 0xBC, 0x2B, 0x10, 0x00, 0x00, 0x00, 0xD4}; // Sensor Located on Board 1, Sensor 1
+uint8_t sensor2_id[8] = { 0x28, 0x8B, 0x8F, 0x0F, 0x00, 0x00, 0x00, 0x32}; // Sensor Located on Board 1, Sensor 2
+
+uint8_t sensor3_id[8] = { 0x28, 0xE9, 0xE8, 0x0E, 0x00, 0x00, 0x00, 0x50}; // Sensor Located on Board 2, Sensor 0
+uint8_t sensor4_id[8] = { 0x28, 0x2B, 0x18, 0x0E, 0x00, 0x00, 0x00, 0x07}; // Sensor Located on Board 2, Sensor 1
+uint8_t sensor5_id[8] = { 0x28, 0x2E, 0x1A, 0x10, 0x00, 0x00, 0x00, 0x42}; // Sensor Located on Board 2, Sensor 2
+
+uint8_t sensor6_id[8] = { 0x28, 0x5F, 0xCC, 0x0F, 0x00, 0x00, 0x00, 0x8D}; // Sensor Located on Board 4, Sensor 0
+uint8_t sensor7_id[8] = { 0x28, 0xCD, 0x5A, 0x0F, 0x00, 0x00, 0x00, 0x79}; // Sensor Located on Board 4, Sensor 1
+uint8_t sensor8_id[8] = { 0x28, 0x04, 0x4D, 0x0F, 0x00, 0x00, 0x00, 0x5D}; // Sensor Located on Board 4, Sensor 2
+
+uint8_t *sensor_ids[] = { sensor0_id, sensor1_id, sensor2_id, 
+                          sensor3_id, sensor4_id, sensor5_id, 
+                          sensor6_id, sensor7_id, sensor8_id, 
+                          };
 
 void setup(void){
   sensors.begin();  // Start up the library
   Serial.begin(9600);
-  Serial.print(sensors.getDeviceCount());
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
-  }
+
+  device_count = sensors.getDeviceCount();
 
   Serial.println("initializiong SD card...");
-
   if (!SD.begin(chipSelect)) {
     Serial.println("initialization failed!");
     while (1);  
   }
+  Serial.println("initialization done."); 
 
-  Serial.println("initialization done.");
-
-  
+  write_to_file(compose_headers(device_count));
 }
 
-// Main Loop
-void loop(void)
-{ 
-  // Send the command to get temperatures
+void loop(){
+  logHiveData();
+  delay(5000);
+}
+
+// LogHiveData Function
+void logHiveData(){
+  digitalWrite(8, HIGH);
+  String timeStamp = String(millis());
+  String data = read_data();
+  write_to_file(timeStamp + ", " + data);
+  digitalWrite(8, LOW);
+}
+
+// ReadData Function
+String read_data(){
   sensors.requestTemperatures();
-  Serial.println(sensors.getDeviceCount()); // Print the number of sensors to the Serial Terminal
-  
-  for(int i=0;i<sensors.getDeviceCount();i++){
-      print_sensor(i); // Print Data to Serial
-      SDWrite(i); // Write Data to SD Card
-
+  String data = "";
+  for (int i = 0; i < device_count; i++){
+    double sensor_reading = Farenhight(sensors.getTempC(sensor_ids[i]));
+    data += String(sensor_reading) + ", ";
   }
+  return data;
+}
 
-  
-  delay(1000); // Change Delay to 10 seconds
+// WriteToFile Function
+void write_to_file(String data) {
+  tempData = SD.open("test.txt", FILE_WRITE);
+  Serial.println("Opening File: " + String(tempData));
+  // dataFile returns null=false if unable to open
+  if (tempData) {
+    Serial.println("File Opened, Writing Data");
+    tempData.println(data);
+    tempData.close();
+  }
+  else{
+    Serial.println("SD Card Error");
+  }
+}
+
+String compose_headers(int count){
+  String text = "Timestamp, ";
+  for (int i = 0; i < count; i++){
+    text += ("Sensor " + String(i) + ", ");
+  }
+  return text;
 }
 
 double Farenhight(double temp){
   return ((temp* 9.0) / 5.0 + 32.0);
-}
-
-void print_sensor(uint8_t index){
-  double temp = sensors.getTempCByIndex(index);
-  //Serial.print("Temperature:"+String(index)+ "Sensor:");
-  DeviceAddress address;
-  if (sensors.getAddress(address,index)){
-    if(temp>30.0){
-          printAddress(address);
-          Serial.println();
-          Serial.println(temp);
-
-    }
-//    Serial.print(String(index)+":   ");
-//    Serial.print(temp);
-//    Serial.print((char)176);//shows degrees character
-//    Serial.print("C  |  ");
-//    
-//    printAddress(address);
-//    Serial.println();
-  }
-  
-  //print the temperature in Fahrenheit
-  Serial.print(String(index)+":    ");
-  Serial.print(Farenhight(temp));
-  Serial.print(char(176));//shows degrees character
-  Serial.print("F  |  ");
-
-  printAddress(address);
-  Serial.println();
-}
-
-//Prints in Hex
-void printAddress(DeviceAddress deviceAddress)
-{
-  for (uint8_t i = 0; i < 8; i++)
-  {
-    // zero pad the address if necessary
-    if (deviceAddress[i] < 16) Serial.print("0");
-    Serial.print(deviceAddress[i], HEX);
-  }
-}
-
-//Write to SD Function
-void SDWrite(uint8_t index){
-  tempData = SD.open("test.txt", FILE_WRITE);
-   double temp = sensors.getTempCByIndex(index);  
-  // if the file opened okay, write to it:
-  if (tempData) {
-    // //Serial.print("Writing to test.txt...");
-    // //tempData.println(String(temp));
-    // tempData.print(String(index)+":    ");
-    // tempData.print(Farenhight(temp));
-    // tempData.print(char(176));//shows degrees character
-    // tempData.print("F  |  ");
-    // tempData.println();
-
-    tempData.print(String(Farenhight(temp))+",");
-    tempData.println();
-
-    // close the file:
-    tempData.close();
-    Serial.println("done.");
-  } else {
-    // if the file didn't open, print an error:
-    Serial.println("error opening test.txt");
-  }
-
 }
