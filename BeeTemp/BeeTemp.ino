@@ -11,8 +11,22 @@
 #include <SPI.h>
 #include <SD.h>
 
+// RTC LIbrary
+#include "RTClib.h"
+#include <Wire.h>
+
+// Definitions
 #define ONE_WIRE_BUS 5 // Data wire is plugged into digital pin 5 on the Feather
 #define chipSelect 10   // Data Pin for SD Card
+#define LED_PIN 13 // Onboard Red LED Pin
+
+#if defined(ARDUINO_ARCH_SAMD)
+// For Zero, output on USB Serial console, remove line below if using programming port to program the Zero!
+  #define Serial SerialUSB
+#endif
+
+// Define Real Time Clock Object
+RTC_PCF8523 rtc;
 
 // Setup a oneWire instance to communicate with any OneWire device
 OneWire oneWire(ONE_WIRE_BUS);  
@@ -46,8 +60,30 @@ uint8_t *sensor_ids[] = { sensor0_id, sensor1_id, sensor2_id,
                           };
 
 void setup(void){
+
+#ifndef ESP8266
+  while (!Serial); // for Leonardo/Micro/Zero
+#endif
+
   sensors.begin();  // Start up the library
-  Serial.begin(9600);
+  Serial.begin(57600);
+
+  Serial.println("Looking for RTC Test...");
+  if(!rtc.begin()){
+    Serial.println("Couln't find RTC");
+    while(1);
+  }
+
+  Serial.println(String(rtc.now().dayOfTheWeek()));
+
+  if (! rtc.initialized()){
+    Serial.println("RTC is NOT running!");
+    // following line sets the RTC to the date & time this sketch was compiled
+    // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    // This line setsx the RTC with an explicit date & time, for example to set
+    // January 21, 2014 at 3am you would call:
+    // rtc.adjust(DateTime(2022, 5, 9, 19, 54, 0));
+  }
 
   device_count = sensors.getDeviceCount();
 
@@ -63,16 +99,23 @@ void setup(void){
 
 void loop(){
   logHiveData();
-  delay(5000);
+  delay(900000);
 }
 
 // LogHiveData Function
 void logHiveData(){
-  digitalWrite(8, HIGH);
-  String timeStamp = String(millis());
+  digitalWrite(LED_PIN, HIGH);
+  // String timeStamp = String(millis());
+
+  DateTime now = rtc.now();
+
+  // String dateStamp = String(now.month()) + "/" + String(now.day()) + "/" + String(now.year());
+  // String timeStamp = String(now.hour()) + ":" + String(now.minute()) + ":" + String(now.second());
+  String timeStamp = String(now.unixtime());
+
   String data = read_data();
-  write_to_file(timeStamp + ", " + data);
-  digitalWrite(8, LOW);
+  write_to_file(timeStamp + "," + data);
+  digitalWrite(LED_PIN, LOW);
 }
 
 // ReadData Function
@@ -81,7 +124,7 @@ String read_data(){
   String data = "";
   for (int i = 0; i < device_count; i++){
     double sensor_reading = Farenhight(sensors.getTempC(sensor_ids[i]));
-    data += String(sensor_reading) + ", ";
+    data += String(sensor_reading) + ",";
   }
   return data;
 }
@@ -102,9 +145,9 @@ void write_to_file(String data) {
 }
 
 String compose_headers(int count){
-  String text = "Timestamp, ";
+  String text = "TimeStamp,";
   for (int i = 0; i < count; i++){
-    text += ("Sensor " + String(i) + ", ");
+    text += ("Sensor " + String(i) + ",");
   }
   return text;
 }
