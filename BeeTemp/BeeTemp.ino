@@ -12,7 +12,7 @@
 #include <SD.h>
 
 // RTC LIbrary
-#include "RTClib.h"
+#include "RTClib.h" // Adafruit Library
 #include <Wire.h>
 
 // Definitions
@@ -95,6 +95,11 @@ void setup(void){
   Serial.println("initialization done."); 
 
   write_to_file(compose_headers(device_count));
+
+  for (int i = 0; i < 10; i++){
+    logHiveData();
+    delay(2000);
+  }
 }
 
 void loop(){
@@ -115,6 +120,7 @@ void logHiveData(){
 
   String data = read_data();
   write_to_file(timeStamp + "," + data);
+  Serial.println(timeStamp + "," + data);
   digitalWrite(LED_PIN, LOW);
 }
 
