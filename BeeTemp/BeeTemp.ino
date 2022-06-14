@@ -11,14 +11,25 @@
 #include <SPI.h>
 #include <SD.h>
 
-// RTC LIbrary
-#include "RTClib.h" // Adafruit Library
+// RTC Library
+#include <RTClib.h> // Adafruit Library
 #include <Wire.h>
+
+// Sleepy Library
+#include <avr/sleep.h>
 
 // Definitions
 #define ONE_WIRE_BUS 5 // Data wire is plugged into digital pin 5 on the Feather
 #define chipSelect 10   // Data Pin for SD Card
 #define LED_PIN 13 // Onboard Red LED Pin
+
+const int CLOCK_INTERRUPT_PIN = 0; // the pin that is connected to SQW
+const int READ_INTERVAL_IN_MINUTES = 15; // Length between readings
+//const int VBATPIN = A9;
+//const int VOLTAGE_DIVIDER_RATIO = 2;
+//const int VOLTAGE_RESOLUTION = 1024;
+//const float REFERENCE_VOLTAGE = 3.3;
+//const float LOW_BATTERY_CUTOFF = 3.6;
 
 #if defined(ARDUINO_ARCH_SAMD)
 // For Zero, output on USB Serial console, remove line below if using programming port to program the Zero!
@@ -42,6 +53,8 @@ File tempData;
 int device_count;
 
 // Create SensorMap
+uint8_t sensor_ambiant_id[8] = { 0x28, 0xBF, 0x43, 0x10, 0x00, 0x00, 0x00, 0xA2}; // Sensor Located inside the project box
+
 uint8_t sensor0_id[8] = { 0x28, 0x97, 0x5B, 0x0E, 0x00, 0x00, 0x00, 0xDA}; // Sensor Located on Board 1, Sensor 0
 uint8_t sensor1_id[8] = { 0x28, 0xBC, 0x2B, 0x10, 0x00, 0x00, 0x00, 0xD4}; // Sensor Located on Board 1, Sensor 1
 uint8_t sensor2_id[8] = { 0x28, 0x8B, 0x8F, 0x0F, 0x00, 0x00, 0x00, 0x32}; // Sensor Located on Board 1, Sensor 2
@@ -54,10 +67,12 @@ uint8_t sensor6_id[8] = { 0x28, 0x5F, 0xCC, 0x0F, 0x00, 0x00, 0x00, 0x8D}; // Se
 uint8_t sensor7_id[8] = { 0x28, 0xCD, 0x5A, 0x0F, 0x00, 0x00, 0x00, 0x79}; // Sensor Located on Board 4, Sensor 1
 uint8_t sensor8_id[8] = { 0x28, 0x04, 0x4D, 0x0F, 0x00, 0x00, 0x00, 0x5D}; // Sensor Located on Board 4, Sensor 2
 
-uint8_t *sensor_ids[] = { sensor0_id, sensor1_id, sensor2_id, 
+uint8_t *sensor_ids[] = { sensor_ambiant_id,
+                          sensor0_id, sensor1_id, sensor2_id, 
                           sensor3_id, sensor4_id, sensor5_id, 
                           sensor6_id, sensor7_id, sensor8_id, 
                           };
+// TODO: Update Headers to Account for ambiant sensor
 
 void setup(void){
 
@@ -104,7 +119,9 @@ void setup(void){
 
 void loop(){
   logHiveData();
-  delay(900000);
+  // setAlarm();
+  goToSleep();
+//  delay(900000);
 }
 
 // LogHiveData Function
@@ -160,4 +177,24 @@ String compose_headers(int count){
 
 double Farenhight(double temp){
   return ((temp* 9.0) / 5.0 + 32.0);
+}
+
+void goToSleep(){
+  Serial.end();
+  attachInterrupt(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN), clockWakeUp, LOW);
+  sleep_enable();
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  delay(1000);
+  sleep_cpu();
+}
+
+void clockWakeUp(){
+  sleep_disable();
+  detachInterrupt(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN));
+}
+
+void setAlarm(){
+  rtc.clearAlarm(1);
+  rtc.setAlarm1(rtc.now() + TimeSpan(0, 0, READ_INTERVAL_IN_MINUTES, 0), DS3231_A1_Date);
+  // last argument is alarm mode: means seconds, minutes, hour, and date all need to match.
 }
